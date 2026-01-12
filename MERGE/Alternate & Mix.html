@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Page Alternator Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --primary-color: #000000;
+            --secondary-color: #f0f0f0;
+            --accent-color: #4a4a4a;
+            --border-color: #ddd;
+            --button-bg: #000;
+            --button-text: #fff;
+        }
+
+        .dark-mode {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --primary-color: #ffffff;
+            --secondary-color: #2d2d2d;
+            --accent-color: #a0a0a0;
+            --border-color: #444;
+            --button-bg: #fff;
+            --button-text: #000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: #fff;
+            color: var(--bg-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: black;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid #1a1a1a;
+            color: #1a1a1a;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #FF58AE;
+            position: relative;
+            background-color: white;
+            border-radius: 40px;
+            padding: 11px;
+            margin: 15px auto;
+            width: 300px;
+            height: 60px;
+            max-width: 235px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section-title:after {
+            content: '';
+            display: block;
+            width: 125px;
+            height: 5px;
+            background: linear-gradient(135deg, #FF58AE, #fff);
+            margin: 1px auto;
+            border-radius: 4px;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 1rem auto;
+            padding: 0 1rem;
+        }
+
+        .upload-section {
+            border: 3px dashed var(--border-color);
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+        }
+
+        .upload-btn {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 11px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+        }
+
+        .preview-section {
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .preview-box {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            min-height: 400px;
+            overflow: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .file-preview {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 1rem;
+        }
+
+        .file-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .file-pages {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .page-preview {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem;
+            width: 120px;
+            text-align: center;
+        }
+
+        .page-preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+
+        .page-number {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--accent-color);
+        }
+
+        .controls {
+            background-color: #FFD1DC;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid var(--border-color);
+            border-radius: 17px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .merge-strategy {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .strategy-option {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: var(--bg-color);
+        }
+
+        .strategy-option:hover {
+            border-color: #FF58AE;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .strategy-option.selected {
+            border-color: #FF58AE;
+            background-color: rgba(255, 107, 107, 0.1);
+        }
+
+        .strategy-option h4 {
+            margin-bottom: 0.5rem;
+            color: #FF58AE;
+        }
+
+        .strategy-option p {
+            font-size: 0.9rem;
+            color: var(--accent-color);
+        }
+
+        .strategy-option input {
+            display: none;
+        }
+
+        .hint {
+            font-size: 0.9rem;
+            color: var(--accent-color);
+            margin-top: 0.5rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .action-btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 11px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .merge-btn {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+        }
+
+        .download-btn {
+            background-color: #FADA5E;
+            color: black;
+        }
+        .download-btn-small {
+            padding: 0.5rem 1rem;
+            background-color: #FADA5E;
+            color: black;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn-small:hover {
+            background-color: #e6c84d;
+            transform: scale(1.05);
+        }
+
+        .another-btn {
+            background-color: #F5F5F5;
+            color: #000;
+        }
+
+        .download-section {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .download-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .download-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #ACE1AF;
+            padding: 0.7rem;
+            border-radius: 11px;
+            text-decoration: none;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .download-link:hover {
+            background-color: #50C878;
+            color: var(--bg-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+            border: 1px solid #c3e6cb;
+            display: none;
+        }
+
+        .file-list {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--secondary-color);
+        }
+
+        .file-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .file-list-item:last-child {
+            border-bottom: none;
+        }
+
+        .remove-file {
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.3rem 0.6rem;
+            cursor: pointer;
+        }
+
+        .add-more-btn {
+            background-color: #FF58AE;
+            color: white;
+            border: none;
+            border-radius: 17px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        footer {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+            text-align: center;
+            padding: 0.3rem;
+            margin-top: 11.7rem;
+        }
+        .dark-mode .section-title {
+            background-color: #2d2d2d;
+            color: #ffffff;
+
+        @media (max-width: 768px) {
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .preview-box {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .page-preview {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .merge-strategy {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">BlurBell</div>
+        <button class="theme-toggle" id="themeToggle">Dark Mode</button>
+    </header>
+    <h4 class="section-title">PDF PAGE ALTERNATOR</h4>
+
+    <div class="container">
+        <section class="upload-section" id="uploadSection">
+            <h2>Upload PDF Files to Alternate Pages</h2>
+            <p>Drag & drop your PDF files here or click to browse</p>
+            <input type="file" id="pdfFiles" accept=".pdf" multiple style="display: none;">
+            <button class="upload-btn" id="uploadBtn">Choose PDF Files</button>
+            
+            <div class="file-list" id="fileList" style="display: none;">
+                <h3>Selected Files: <span id="fileCount">0</span></h3>
+                <div id="fileListItems"></div>
+                <button class="add-more-btn" id="addMoreBtn">Add More Files</button>
+            </div>
+        </section>
+
+        <section class="preview-section" id="previewSection">
+            <div class="preview-header">
+                <h2>Preview</h2>
+                <p>Files: <span id="previewFileCount">0</span> selected</p>
+            </div>
+            <div class="preview-box" id="pdfPreview">
+                <!-- PDF files preview will be displayed here -->
+            </div>
+        </section>
+
+        <section class="controls" id="controls">
+    <h2>Alternate Settings</h2>
+    
+    <div class="control-group">
+        <button class="add-more-btn" id="addMorePdfBtn" style="width: 100%; margin-bottom: 1rem; padding: 1rem; font-size: 1.1rem;">
+            + Add More PDF Files
+        </button>
+        
+        <label for="fileNameInput">Output File Name:</label>
+        <input type="text" id="fileNameInput" placeholder="Enter file name (without extension)">
+        <p class="hint">If left empty, "Alternated_doc" will be used</p>
+    </div>
+    
+    <div class="control-group">
+        <label>Alternate Strategy:</label>
+        <div class="merge-strategy">
+            <div class="strategy-option" data-value="alternate">
+                <input type="radio" id="strategyAlternate" name="mergeStrategy" value="alternate" checked>
+                <h4>Alternate Pages</h4>
+                <p>1st PDF Page 1, 2nd PDF Page 1, 1st PDF Page 2, 2nd PDF Page 2, etc.</p>
+            </div>
+            <div class="strategy-option" data-value="sequential">
+                <input type="radio" id="strategySequential" name="mergeStrategy" value="sequential">
+                <h4>Sequential</h4>
+                <p>All pages from 1st PDF, then all from 2nd PDF, etc.</p>
+            </div>
+            <div class="strategy-option" data-value="reverse">
+                <input type="radio" id="strategyReverse" name="mergeStrategy" value="reverse">
+                <h4>Reverse Order</h4>
+                <p>All pages from last PDF to first PDF</p>
+            </div>
+            <div class="strategy-option" data-value="evenodd">
+                <input type="radio" id="strategyEvenOdd" name="mergeStrategy" value="evenodd">
+                <h4>Even-Odd Distribution</h4>
+                <p>Even pages from all PDFs, then odd pages from all PDFs</p>
+            </div>
+            <div class="strategy-option" data-value="oddeven">
+                <input type="radio" id="strategyOddEven" name="mergeStrategy" value="oddeven">
+                <h4>Odd-Even Distribution</h4>
+                <p>Odd pages from all PDFs, then even pages from all PDFs</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <button class="action-btn merge-btn" id="mergeBtn">Alternate PDFs</button>
+        <button class="action-btn another-btn" id="anotherBtn" style="display: none;">Alternate Another Files</button>
+    </div>
+</section>
+
+        <section class="download-section" id="downloadSection">
+            <div class="download-header">
+                <h2>Download Merged PDF</h2>
+            </div>
+            <div class="success-message" id="successMessage">
+                ✓ PDF Files Merged Successfully! Your PDFs have been alternated and merged into a single file.
+            </div>
+            <div class="download-links" id="downloadLinks">
+                <!-- Download link will be added here -->
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 PDF Page Alternator Tool. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Set up PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.worker.min.js';
+
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            if (document.body.classList.contains('dark-mode')) {
+                themeToggle.textContent = 'Light Mode';
+            } else {
+                themeToggle.textContent = 'Dark Mode';
+            }
+        });
+
+        // PDF Alternator functionality
+        const addMorePdfBtn = document.getElementById('addMorePdfBtn');
+        const pdfFilesInput = document.getElementById('pdfFiles');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const addMoreBtn = document.getElementById('addMoreBtn');
+        const uploadSection = document.getElementById('uploadSection');
+        const previewSection = document.getElementById('previewSection');
+        const pdfPreview = document.getElementById('pdfPreview');
+        const fileCountElement = document.getElementById('fileCount');
+        const previewFileCountElement = document.getElementById('previewFileCount');
+        const controls = document.getElementById('controls');
+        const fileNameInput = document.getElementById('fileNameInput');
+        const mergeBtn = document.getElementById('mergeBtn');
+        const anotherBtn = document.getElementById('anotherBtn');
+        const downloadSection = document.getElementById('downloadSection');
+        const downloadLinks = document.getElementById('downloadLinks');
+        const successMessage = document.getElementById('successMessage');
+        const fileList = document.getElementById('fileList');
+        const fileListItems = document.getElementById('fileListItems');
+
+        let pdfDocuments = [];
+        let selectedFiles = [];
+
+        // Set up file input
+        uploadBtn.addEventListener('click', () => {
+            pdfFilesInput.click();
+        });
+        addMorePdfBtn.addEventListener('click', () => {
+            pdfFilesInput.click();
+        });
+
+        addMoreBtn.addEventListener('click', () => {
+            pdfFilesInput.click();
+        });
+
+        pdfFilesInput.addEventListener('change', handleFileSelect);
+
+        // Merge PDFs functionality
+        mergeBtn.addEventListener('click', mergePdfs);
+        anotherBtn.addEventListener('click', resetTool);
+
+        // Strategy selection
+        document.querySelectorAll('.strategy-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.strategy-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                this.classList.add('selected');
+                const radio = this.querySelector('input[type="radio"]');
+                radio.checked = true;
+            });
+        });
+
+        // Initialize with first option selected
+        document.querySelector('.strategy-option').classList.add('selected');
+
+        function handleFileSelect(event) {
+    const newFiles = Array.from(event.target.files);
+    
+    if (newFiles.length === 0) return;
+    
+    // Add new files to our collection
+    newFiles.forEach(file => {
+        // Check if file is already selected
+        const isDuplicate = selectedFiles.some(selectedFile => 
+            selectedFile.name === file.name && selectedFile.size === file.size
+        );
+        
+        if (!isDuplicate && file.type === 'application/pdf') {
+            selectedFiles.push(file);
+        } else if (!isDuplicate) {
+            alert(`File "${file.name}" is not a valid PDF. Please select only PDF files.`);
+        }
+    });
+    
+    // Hide upload section immediately
+    uploadSection.style.display = 'none';
+    
+    // Process files
+    if (selectedFiles.length >= 1) {
+        processFiles();
+    }
+}
+
+        async function processFiles() {
+    // Don't reset previous documents when adding more files
+    // Only reset if this is the first time processing
+    if (pdfDocuments.length === 0) {
+        pdfDocuments = [];
+    }
+    
+    // Process each new file
+    let processedFiles = pdfDocuments.length;
+    let hasError = false;
+    
+    // Start from the last processed file
+    for (let i = pdfDocuments.length; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        try {
+            const fileReader = new FileReader();
+            
+            await new Promise((resolve, reject) => {
+                fileReader.onload = async function(e) {
+                    try {
+                        const typedArray = new Uint8Array(e.target.result);
+                        
+                        // Load PDF with pdf.js
+                        const pdf = await pdfjsLib.getDocument(typedArray).promise;
+                        
+                        pdfDocuments.push({
+                            pdfDoc: pdf,
+                            fileName: file.name,
+                            pageCount: pdf.numPages,
+                            fileData: typedArray
+                        });
+                        
+                        processedFiles++;
+                        resolve();
+                    } catch (error) {
+                        console.error('Error loading PDF:', error);
+                        reject(error);
+                    }
+                };
+                
+                fileReader.onerror = function() {
+                    reject(new Error('Error reading file'));
+                };
+                
+                fileReader.readAsArrayBuffer(file);
+            });
+        } catch (error) {
+            console.error('Error processing PDF:', error);
+            alert(`Error processing PDF file: ${file.name}. Please try again with a valid PDF file.`);
+            hasError = true;
+            break;
+        }
+    }
+    
+    // If all files processed successfully
+    if (!hasError && processedFiles === selectedFiles.length) {
+        // Show preview section and controls
+        uploadSection.style.display = 'none';
+        previewSection.style.display = 'block';
+        controls.style.display = 'block';
+        downloadSection.style.display = 'none';
+        
+        // Update preview file count
+        previewFileCountElement.textContent = selectedFiles.length;
+        
+        // Clear and re-display PDF preview
+        pdfPreview.innerHTML = '';
+        displayPdfPreview();
+    }
+}
+
+        function updateFileList() {
+    fileListItems.innerHTML = '';
+    selectedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-list-item';
+        fileItem.innerHTML = `
+            <span>${file.name}</span>
+            <button class="remove-file" data-index="${index}">Remove</button>
+        `;
+        fileListItems.appendChild(fileItem);
+    });
+    
+    fileList.style.display = 'block';
+    fileCountElement.textContent = selectedFiles.length;
+    
+    // Add event listeners to remove buttons
+    document.querySelectorAll('.remove-file').forEach(button => {
+        button.addEventListener('click', function() {
+            const index = parseInt(this.getAttribute('data-index'));
+            removeFile(index);
+        });
+    });
+}
+
+        function removeFile(index) {
+    // Remove file from selected files
+    selectedFiles.splice(index, 1);
+    
+    // Update file list
+    updateFileList();
+    
+    // If no files remain, hide preview and controls
+    if (selectedFiles.length === 0) {
+        previewSection.style.display = 'none';
+        controls.style.display = 'none';
+        downloadSection.style.display = 'none';
+    } else {
+        // Re-process the files (even if only 1 file remains)
+        processFiles();
+    }
+}
+
+        function displayPdfPreview() {
+    pdfPreview.innerHTML = ''; // Clear existing preview
+    
+    // Display each PDF with its first page preview
+    pdfDocuments.forEach((doc, docIndex) => {
+        const fileDiv = document.createElement('div');
+        fileDiv.className = 'file-preview';
+        
+        const fileHeader = document.createElement('div');
+        fileHeader.className = 'file-header';
+        fileHeader.innerHTML = `
+            <h4>${doc.fileName}</h4>
+            <span>Pages: ${doc.pageCount}</span>
+        `;
+        
+        const filePages = document.createElement('div');
+        filePages.className = 'file-pages';
+        
+        fileDiv.appendChild(fileHeader);
+        fileDiv.appendChild(filePages);
+        pdfPreview.appendChild(fileDiv);
+        
+        // Render first 3 pages for preview
+        const pagesToPreview = Math.min(3, doc.pageCount);
+        
+        for (let i = 1; i <= pagesToPreview; i++) {
+            doc.pdfDoc.getPage(i).then(function(page) {
+                const viewport = page.getViewport({ scale: 0.3 });
+                
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                
+                page.render(renderContext).promise.then(function() {
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'page-preview';
+                    
+                    const img = document.createElement('img');
+                    img.src = canvas.toDataURL('image/jpeg', 0.7);
+                    img.alt = `Page ${i}`;
+                    
+                    const pageNumber = document.createElement('div');
+                    pageNumber.className = 'page-number';
+                    pageNumber.textContent = `Page ${i}`;
+                    
+                    pageDiv.appendChild(img);
+                    pageDiv.appendChild(pageNumber);
+                    filePages.appendChild(pageDiv);
+                });
+            });
+        }
+    });
+}
+
+        async function mergePdfs() {
+    if (pdfDocuments.length < 2) {
+        // Show message below the button instead of alert
+        const errorMessage = document.createElement('div');
+        errorMessage.style.cssText = 'color: #FF0000; text-align: center; margin-top: 0rem; padding: 0.6rem; background: rgba(255,255,255,1); border-radius: 17px;';
+        errorMessage.textContent = 'Please upload at least 2 PDF files first.';
+        
+        // Remove any existing error message
+        const existingError = mergeBtn.parentNode.querySelector('.error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        // Add the new error message
+        errorMessage.className = 'error-message';
+        mergeBtn.parentNode.appendChild(errorMessage);
+        
+        // Remove after 7 seconds
+        setTimeout(() => {
+            errorMessage.remove();
+        }, 7000);
+        
+        return;
+    }
+    
+    mergeBtn.textContent = 'Merging...';
+    mergeBtn.disabled = true;
+    
+    try {
+        // Create a new PDF document
+        const mergedPdf = await PDFLib.PDFDocument.create();
+        
+        // Get merge strategy
+        const strategy = document.querySelector('input[name="mergeStrategy"]:checked').value;
+        
+        // Load all source PDFs
+        const sourcePdfs = [];
+        for (const doc of pdfDocuments) {
+            const sourcePdf = await PDFLib.PDFDocument.load(doc.fileData);
+            sourcePdfs.push(sourcePdf);
+        }
+        
+        // Apply the selected strategy
+        if (strategy === 'alternate') {
+            await mergeAlternatePages(mergedPdf, sourcePdfs);
+        } else if (strategy === 'sequential') {
+            await mergeSequentialPages(mergedPdf, sourcePdfs);
+        } else if (strategy === 'reverse') {
+            await mergeReversePages(mergedPdf, sourcePdfs);
+        } else if (strategy === 'evenodd') {
+            await mergeEvenOddPages(mergedPdf, sourcePdfs);
+        } else if (strategy === 'oddeven') {
+            await mergeOddEvenPages(mergedPdf, sourcePdfs);
+        }
+        
+        // Save the merged PDF
+        const mergedPdfBytes = await mergedPdf.save();
+        
+        // Create download link
+        const fileName = fileNameInput.value || 'Alternate-Document';
+        const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+        
+        displayDownloadLink(blob, `${fileName}.pdf`, 'application/pdf');
+        finishConversion();
+        
+    } catch (error) {
+        console.error('Error merging PDFs:', error);
+        alert('Error merging PDFs. Please try again.');
+        mergeBtn.textContent = 'Merge PDFs';
+        mergeBtn.disabled = false;
+    }
+}
+
+        async function mergeAlternatePages(mergedPdf, sourcePdfs) {
+            // Find the maximum number of pages across all PDFs
+            const maxPages = Math.max(...pdfDocuments.map(doc => doc.pageCount));
+            
+            // For each page index, add the corresponding page from each PDF
+            for (let pageIndex = 0; pageIndex < maxPages; pageIndex++) {
+                for (let docIndex = 0; docIndex < pdfDocuments.length; docIndex++) {
+                    const doc = pdfDocuments[docIndex];
+                    
+                    // Check if this PDF has a page at this index
+                    if (pageIndex < doc.pageCount) {
+                        // Copy the page
+                        const [copiedPage] = await mergedPdf.copyPages(sourcePdfs[docIndex], [pageIndex]);
+                        mergedPdf.addPage(copiedPage);
+                    }
+                }
+            }
+        }
+
+        async function mergeSequentialPages(mergedPdf, sourcePdfs) {
+            // Add all pages from each PDF in order
+            for (let docIndex = 0; docIndex < pdfDocuments.length; docIndex++) {
+                const doc = pdfDocuments[docIndex];
+                
+                // Get all page indices for this PDF
+                const pageIndices = Array.from({ length: doc.pageCount }, (_, i) => i);
+                
+                // Copy all pages
+                const copiedPages = await mergedPdf.copyPages(sourcePdfs[docIndex], pageIndices);
+                copiedPages.forEach(page => mergedPdf.addPage(page));
+            }
+        }
+
+        async function mergeReversePages(mergedPdf, sourcePdfs) {
+            // Add all pages from each PDF in reverse order
+            for (let docIndex = pdfDocuments.length - 1; docIndex >= 0; docIndex--) {
+                const doc = pdfDocuments[docIndex];
+                
+                // Get all page indices for this PDF
+                const pageIndices = Array.from({ length: doc.pageCount }, (_, i) => i);
+                
+                // Copy all pages
+                const copiedPages = await mergedPdf.copyPages(sourcePdfs[docIndex], pageIndices);
+                copiedPages.forEach(page => mergedPdf.addPage(page));
+            }
+        }
+
+        async function mergeEvenOddPages(mergedPdf, sourcePdfs) {
+    // First add all even pages from all PDFs
+    for (let docIndex = 0; docIndex < pdfDocuments.length; docIndex++) {
+        const doc = pdfDocuments[docIndex];
+        
+        // Get even page indices (0-indexed, so page 2 is index 1 which is even)
+        const evenIndices = Array.from({ length: Math.floor(doc.pageCount / 2) }, (_, i) => i * 2 + 1);
+        
+        // Copy even pages
+        const copiedPages = await mergedPdf.copyPages(sourcePdfs[docIndex], evenIndices);
+        copiedPages.forEach(page => mergedPdf.addPage(page));
+    }
+    
+    // Then add all odd pages from all PDFs
+    for (let docIndex = 0; docIndex < pdfDocuments.length; docIndex++) {
+        const doc = pdfDocuments[docIndex];
+        
+        // Get odd page indices (0-indexed, so page 1 is index 0 which is odd)
+        const oddIndices = Array.from({ length: Math.ceil(doc.pageCount / 2) }, (_, i) => i * 2);
+        
+        // Copy odd pages
+        const copiedPages = await mergedPdf.copyPages(sourcePdfs[docIndex], oddIndices);
+        copiedPages.forEach(page => mergedPdf.addPage(page));
+    }
+}
+
+        async function mergeOddEvenPages(mergedPdf, sourcePdfs) {
+    // First add all odd pages from all PDFs
+    for (let docIndex = 0; docIndex < pdfDocuments.length; docIndex++) {
+        const doc = pdfDocuments[docIndex];
+        
+        // Get odd page indices (0-indexed, so page 1 is index 0 which is odd)
+        const oddIndices = Array.from({ length: Math.ceil(doc.pageCount / 2) }, (_, i) => i * 2);
+        
+        // Copy odd pages
+        const copiedPages = await mergedPdf.copyPages(sourcePdfs[docIndex], oddIndices);
+        copiedPages.forEach(page => mergedPdf.addPage(page));
+    }
+    
+    // Then add all even pages from all PDFs
+    for (let docIndex = 0; docIndex < pdfDocuments.length; docIndex++) {
+        const doc = pdfDocuments[docIndex];
+        
+        // Get even page indices (0-indexed, so page 2 is index 1 which is even)
+        const evenIndices = Array.from({ length: Math.floor(doc.pageCount / 2) }, (_, i) => i * 2 + 1);
+        
+        // Copy even pages
+        const copiedPages = await mergedPdf.copyPages(sourcePdfs[docIndex], evenIndices);
+        copiedPages.forEach(page => mergedPdf.addPage(page));
+    }
+}
+
+        function displayDownloadLink(blob, fileName, mimeType) {
+    const url = URL.createObjectURL(blob);
+    
+    downloadLinks.innerHTML = '';
+    const downloadLink = document.createElement('a');
+    downloadLink.className = 'download-link';
+    downloadLink.href = url;
+    downloadLink.download = fileName;
+    
+    const linkFileName = document.createElement('span');
+    linkFileName.textContent = fileName;
+    
+    const downloadBtnSmall = document.createElement('button');
+    downloadBtnSmall.className = 'download-btn-small';
+    downloadBtnSmall.textContent = 'Download';
+    
+    downloadLink.appendChild(linkFileName);
+    downloadLink.appendChild(downloadBtnSmall);
+    downloadLinks.appendChild(downloadLink);
+}
+
+        function finishConversion() {
+            // Show success message for 3 seconds
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+            
+            mergeBtn.textContent = 'Alternate PDFs';
+            mergeBtn.disabled = false;
+            anotherBtn.style.display = 'block';
+            
+            // Show download section
+            downloadSection.style.display = 'block';
+        }
+
+        function resetTool() {
+            uploadSection.style.display = 'block';
+            previewSection.style.display = 'none';
+            controls.style.display = 'none';
+            downloadSection.style.display = 'none';
+            anotherBtn.style.display = 'none';
+            pdfFilesInput.value = '';
+            fileNameInput.value = '';
+            pdfDocuments = [];
+            selectedFiles = [];
+            fileList.style.display = 'none';
+            successMessage.style.display = 'none';
+        }
+
+        // Handle drag and drop for file upload
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.style.borderColor = '#000';
+        });
+        
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.style.borderColor = 'var(--border-color)';
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.style.borderColor = 'var(--border-color)';
+            
+            if (e.dataTransfer.files.length) {
+                handleFileSelect({ target: { files: e.dataTransfer.files } });
+            }
+        });
+    </script>
+</body>
+</html>
